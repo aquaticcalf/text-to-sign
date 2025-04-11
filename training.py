@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
-from torchtext.legacy.data import Dataset  # For torchtext ≥0.9
+from torchtext.data import Dataset
 
 from model import build_model
 from batch import Batch
