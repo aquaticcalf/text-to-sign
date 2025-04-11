@@ -645,7 +645,7 @@ def test(cfg_file,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Progressive Transformers")
-    parser.add_argument("--config", default="Configs/base.yaml", type=str,
+    parser.add_argument("--config", default="Configs/Base.yaml", type=str,
                         help="Training configuration file (yaml).")
     args = parser.parse_args()
     train(cfg_file=args.config)
