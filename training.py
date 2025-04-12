@@ -1,4 +1,3 @@
-import argparse
 import time
 import shutil
 import os
@@ -12,7 +11,7 @@ from torchtext.data import Dataset
 
 from model import build_model
 from batch import Batch
-from helpers import  load_config, log_cfg, load_checkpoint, make_model_dir, \
+from helpers import  log_cfg, load_checkpoint, make_model_dir, \
     make_logger, set_seed, symlink_update, ConfigurationError, get_latest_checkpoint
 from model import Model
 from prediction import validate_on_data
@@ -535,10 +534,10 @@ class TrainManager:
         assert trainable_params
 
 
-def train(cfg_file: str, ckpt=None) -> None:
+def train(cfg: dict, ckpt=None) -> None:
 
-    # Load the config file
-    cfg = load_config(cfg_file)
+    # Load the config file - Removed, using passed cfg dict
+    # cfg = load_config(cfg_file)
 
     # Set the random seed
     set_seed(seed=cfg["training"].get("random_seed", 42))
@@ -558,8 +557,8 @@ def train(cfg_file: str, ckpt=None) -> None:
     # for training management, e.g. early stopping and model selection
     trainer = TrainManager(model=model, config=cfg)
 
-    # Store copy of original training config in model dir
-    shutil.copy2(cfg_file, trainer.model_dir+"/config.yaml")
+    # Store copy of original training config in model dir - Removed config file copy
+    # shutil.copy2(cfg_file, trainer.model_dir+"/config.yaml")
     # Log all entries of config
     log_cfg(cfg, trainer.logger)
 
@@ -567,14 +566,14 @@ def train(cfg_file: str, ckpt=None) -> None:
     trainer.train_and_validate(train_data=train_data, valid_data=dev_data)
 
     # Test the model with the best checkpoint
-    test(cfg_file)
+    test(cfg=cfg) # Pass the received cfg dict
 
 # pylint: disable-msg=logging-too-many-args
-def test(cfg_file,
-         ckpt: str) -> None:
+def test(cfg: dict, # Added cfg parameter, removed cfg_file
+         ckpt: str = None) -> None: # Made ckpt optional
 
-    # Load the config file
-    cfg = load_config(cfg_file)
+    # Load the config file - Removed, using passed cfg dict
+    # cfg = load_config(cfg_file)
 
     # Load the model directory and checkpoint
     model_dir = cfg["training"]["model_dir"]
@@ -644,8 +643,38 @@ def test(cfg_file,
         )
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Progressive Transformers")
-    parser.add_argument("--config", default="Configs/Base.yaml", type=str,
-                        help="Training configuration file (yaml).")
-    args = parser.parse_args()
-    train(cfg_file=args.config)
+    # Define the hardcoded configuration dictionary *inside* the main block
+    cfg = {
+        "data": {
+            "src": "gloss", "trg": "skels", "files": "files",
+            "train": "./Data/tmp/train", "dev": "./Data/tmp/dev", "test": "./Data/tmp/test",
+            "max_sent_length": 300, "skip_frames": 1, "src_vocab": "./Configs/src_vocab.txt",
+            "num_joints": 1839, "label_type": "gloss"
+        },
+        "training": {
+            "random_seed": 27, "optimizer": "adam", "learning_rate": 0.001, "learning_rate_min": 0.0002,
+            "weight_decay": 0.0, "clip_grad_norm": 5.0, "batch_size": 4, "scheduling": "plateau",
+            "patience": 7, "decrease_factor": 0.7, "early_stopping_metric": "dtw", "epochs": 20000,
+            "validation_freq": 10, "logging_freq": 250, "eval_metric": "dtw", "model_dir": "./Models/ISL",
+            "overwrite": False, "continue": True, "shuffle": True, "use_cuda": True,
+            "max_output_length": 300, "keep_last_ckpts": 1, "loss": "MSE"
+        },
+        "model": {
+            "initializer": "xavier", "bias_initializer": "zeros", "embed_initializer": "xavier",
+            "trg_size": 1839, "just_count_in": False, "gaussian_noise": False, "noise_rate": 5,
+            "future_prediction": 0,
+            "encoder": {
+                "type": "transformer", "num_layers": 4, "num_heads": 8,
+                "embeddings": {"embedding_dim": 512, "dropout": 0.1},
+                "hidden_size": 512, "ff_size": 2048, "dropout": 0.1
+            },
+            "decoder": {
+                "type": "transformer", "num_layers": 4, "num_heads": 8,
+                "embeddings": {"embedding_dim": 512, "dropout": 0.1},
+                "hidden_size": 512, "ff_size": 2048, "dropout": 0.1
+            }
+        }
+    }
+
+    # Call train directly, passing the locally defined cfg dictionary
+    train(cfg=cfg)
